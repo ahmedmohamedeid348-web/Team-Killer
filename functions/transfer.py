@@ -64,4 +64,3 @@ def handler(event, context):
 
     except Exception as e:
         return {'statusCode': 500, 'body': json.dumps({'message': f'خطأ: {str(e)}'})}
-
