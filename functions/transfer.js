@@ -1,9 +1,8 @@
-import json
 import requests
+import json
 
 def handler(event, context):
-    # هيدرز الأمان عشان الموقع يرضى يستلم البيانات
-    headers = {
+    headers_res = {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Headers": "Content-Type",
@@ -11,17 +10,14 @@ def handler(event, context):
     }
 
     if event.get('httpMethod') == 'OPTIONS':
-        return {'statusCode': 200, 'headers': headers, 'body': 'OK'}
+        return {'statusCode': 200, 'headers': headers_res, 'body': 'OK'}
 
     try:
         body = json.loads(event.get('body', '{}'))
         phone = body.get('phone', '').strip()
         password = body.get('password', '').strip()
 
-        if not phone or not password:
-            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'message': 'برجاء إدخال البيانات'})}
-
-        # تسجيل الدخول
+        # 1. تسجيل الدخول بدقة أعلى
         login_url = "https://mobile.vodafone.com.eg/auth/realms/vf-realm/protocol/openid-connect/token"
         login_data = {
             "username": phone, "password": password,
@@ -29,14 +25,21 @@ def handler(event, context):
             "client_secret": "95fd95fb-7489-4958-8ae6-d31a525cd20a"
         }
         
-        r = requests.post(login_url, data=login_data, headers={'User-Agent': 'okhttp/4.12.0'}, timeout=10)
+        # محاكاة كاملة للهيدرز الخاصة بالتطبيق
+        h_login = {
+            'User-Agent': 'okhttp/4.12.0',
+            'X-App-Version': '15.0.0',
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
         
-        if r.status_code != 200:
-            return {'statusCode': 401, 'headers': headers, 'body': json.dumps({'message': 'بيانات الدخول غلط'})}
+        r_login = requests.post(login_url, data=login_data, headers=h_login, timeout=15)
         
-        token = r.json().get("access_token")
+        if r_login.status_code != 200:
+            return {'statusCode': 401, 'headers': headers_res, 'body': json.dumps({'message': 'تأكد من الرقم أو الباسورد (أنا فودافون)'})}
+        
+        token = r_login.json().get("access_token")
 
-        # هنا كود الترحيل (استخدمنا enc_id ثابت لضمان السرعة)
+        # 2. الترحيل المباشر
         enc_id = "sIsvF1igZR8nXmvj4t8rDDfOihuooqcs1+0yDQaZnj1yf11dtj4VpRlaU1u+jNPTm27iemDObpE4EC4U94bSTZRNDImUKC9bLc2hKW8B/q0Pz67K+aehvOiSt5Lv68QAmGC/laloDUhIIxPokI3KYLMdweAZ63MlveYRqEYXsPdi7tfIXLfieW04uXC7qqLAC3oYiA5Y51BO5qSLNdkJYwIi7w=="
         
         transfer_url = "https://mobile.vodafone.com.eg/services/dxl/pom/productOrder"
@@ -45,24 +48,25 @@ def handler(event, context):
             "orderItem": [{
                 "action": "add",
                 "product": {
-                    "encProductId": enc_id,
-                    "id": "FLEX5.0_ROLLOVER",
+                    "encProductId": enc_id, "id": "FLEX5.0_ROLLOVER",
                     "relatedParty": [{"id": phone, "name": "MSISDN", "role": "Subscriber"}]
                 }
-            }],
-            "@type": "flex"
+            }], "@type": "flex"
         }
-        
-        res = requests.post(transfer_url, json=payload, headers={
-            'Authorization': f"Bearer {token}",
-            'msisdn': phone,
-            'Content-Type': "application/json"
-        }, timeout=10)
 
-        if res.status_code in [200, 201, 202]:
-            return {'statusCode': 200, 'headers': headers, 'body': json.dumps({'message': 'تم ترحيل الفليكسات بنجاح! ✅'})}
+        h_transfer = {
+            'User-Agent': "okhttp/4.11.0",
+            'Content-Type': "application/json",
+            'Authorization': f"Bearer {token}",
+            'msisdn': phone
+        }
+
+        r_final = requests.post(transfer_url, json=payload, headers=h_transfer, timeout=15)
+
+        if r_final.status_code in [200, 201, 202]:
+            return {'statusCode': 200, 'headers': headers_res, 'body': json.dumps({'message': 'تم الترحيل بنجاح! ✅'})}
         else:
-            return {'statusCode': 400, 'headers': headers, 'body': json.dumps({'message': 'الحساب غير مؤهل حالياً'})}
+            return {'statusCode': 400, 'headers': headers_res, 'body': json.dumps({'message': 'الحساب غير مؤهل للترحيل (لا توجد فليكسات متبقية)'})}
 
     except Exception as e:
-        return {'statusCode': 500, 'headers': headers, 'body': json.dumps({'message': f'خطأ بالسيرفر: {str(e)}'})}
+        return {'statusCode': 500, 'headers': headers_res, 'body': json.dumps({'message': f'خطأ تقني: {str(e)}'})}
