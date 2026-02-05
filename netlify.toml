@@ -1,5 +1,24 @@
 [build]
+  # المجلد اللي فيه ملف الـ index.html (النقطة تعني المجلد الرئيسي)
   publish = "."
 
 [functions]
+  # المجلد اللي حطينا فيه ملف transfer.js
   directory = "functions"
+  
+  # استخدام esbuild بيخلي الفانكشن طيارة وبيحل مشاكل الـ "Dependencies"
+  node_bundler = "esbuild"
+
+# إعدادات إضافية لضمان عدم حدوث مشاكل في المسارات (Redirects)
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[headers]]
+  # السماح بتبادل البيانات لمنع ظهور undefined في المتصفح
+  for = "/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Headers = "Content-Type"
+    Access-Control-Allow-Methods = "POST, GET, OPTIONS"
